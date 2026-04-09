@@ -1,6 +1,0 @@
-Q3 roadmap draft
-
-The team agreed to prioritize reliability first.
-Approved by product leadership.
-
-Ticket: JIRA-77
