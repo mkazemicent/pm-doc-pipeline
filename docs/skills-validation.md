@@ -11,12 +11,9 @@ This document tracks validation for project-scoped Copilot skills under `.github
 
 | Skill | Healthy Scenario | Failure Scenario | Expected Result | Status | Notes |
 |---|---|---|---|---|---|
-| `/pm-doc-doctor` | venv active, config valid, outputs present | missing config or missing staged source | PASS/WARN/FAIL with remediation | TODO | |
-| `/pm-doc-install-fix --check` | editable install valid | backend mismatch or missing CLI command | diagnostics only + exact fix commands | TODO | |
-| `/pm-doc-install-fix --apply` | minor stale cache | missing command due to install failure | safe repairs + verification commands | TODO | |
-| `/pm-doc-test-scenario` | local sample run | output folder missing | run summary + artifact checks | TODO | |
+| `/pm-doc-doctor` | venv active, config valid, outputs present | missing config or missing staged source | PASS/WARN/FAIL with remediation | TODO | includes --fix mode for install repair |
 | `/pm-doc-state-audit` | consistent staging/raw/processed | stale staging manifest entries | severity-grouped findings + actions | TODO | |
-| `/pm-doc-report-weekly` | output artifacts available | missing PROJECT_CONTEXT.md | deterministic report or clear blocker | TODO | |
+| `/pm-doc-report-weekly` | output artifacts available, runs pm-pipeline report | missing PROJECT_CONTEXT.md | deterministic report or clear blocker | TODO | backed by src/engine/report.py |
 
 ## Acceptance Gates
 

@@ -18,7 +18,6 @@ source .venv/bin/activate.fish
 ## Install
 ```bash
 pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
 pip install -e .
 ```
 

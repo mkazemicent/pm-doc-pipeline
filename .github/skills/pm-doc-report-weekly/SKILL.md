@@ -60,22 +60,8 @@ Completion response sections:
 - output/DECISION_LOG.md
 - output/CHANGELOG.md
 
-2. Extract deterministic sections:
-- Run metadata (documents, decisions, changes)
-- Decision highlights
-- Ticket references
-- Recent changes
-
-3. Generate markdown report at:
-- default: output/reports/WEEKLY_REPORT.md
-- override if --output is provided
-
-4. Report structure:
-- Summary
-- Decisions this period
-- Ticket impact
-- Change log highlights
-- Risks and follow-ups
-
-5. Return completion output with generated file path and key counts.
+2. Run `pm-pipeline report` to generate the deterministic report.
+3. Read the generated output/reports/WEEKLY_REPORT.md.
+4. Present the report content to the user.
+5. If the user asks for interpretation or follow-ups, provide analysis based on the generated report.
 </process>

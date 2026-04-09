@@ -39,7 +39,6 @@ source .venv/bin/activate.fish
 
 ```bash
 pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
 pip install -e .
 ```
 
@@ -161,6 +160,8 @@ flowchart TD
 | `pm-pipeline run` | Run all 4 pipeline stages |
 | `pm-pipeline run -s translate -s publish` | Run specific stages |
 | `pm-pipeline status` | Show file counts and pipeline state |
+| `pm-pipeline report` | Generate a weekly report from output artifacts |
+| `pm-pipeline report -o path` | Generate report to a custom path |
 | `pm-pipeline init` | Create project directories |
 
 ## Copilot Skills (Project-Scoped)
@@ -172,8 +173,6 @@ Project operator agent:
 
 Available skills:
 - `/pm-doc-doctor`
-- `/pm-doc-install-fix`
-- `/pm-doc-test-scenario`
 - `/pm-doc-state-audit`
 - `/pm-doc-report-weekly`
 
@@ -181,17 +180,14 @@ Skill behavior summary:
 
 | Skill | Purpose | Default Mode | Writes Files |
 |---|---|---|---|
-| `/pm-doc-doctor` | setup and readiness diagnostics | read-only checks | no |
-| `/pm-doc-install-fix` | install troubleshooting | `--check` (diagnostics only) | no |
-| `/pm-doc-test-scenario` | end-to-end local validation | run + staged cleanup | yes (test inputs and pipeline outputs) |
+| `/pm-doc-doctor` | setup/readiness diagnostics, install repair with --fix | read-only checks | no (unless --fix) |
 | `/pm-doc-state-audit` | staging/raw/processed/output consistency audit | read-only checks | no |
-| `/pm-doc-report-weekly` | deterministic weekly report generation | read existing output artifacts | yes (report output) |
+| `/pm-doc-report-weekly` | weekly report via pm-pipeline report | runs CLI command | yes (report output) |
 
 Usage example in Copilot Chat:
 
 ```text
 /pm-doc-doctor --verbose
-/pm-doc-test-scenario --cleanup
 /pm-doc-report-weekly
 ```
 

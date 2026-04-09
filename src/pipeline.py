@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 
 import yaml
+from .config import PipelineConfig
 
 from .harvester import ConfluenceHarvester, GitHubHarvester, WebexHarvester
 from .harvester.local_harvester import LocalHarvester
@@ -17,7 +18,9 @@ log = logging.getLogger(__name__)
 def load_config(config_path: Path) -> dict:
     """Load and return the pipeline YAML configuration."""
     with open(config_path, encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        raw = yaml.safe_load(f)
+    config = PipelineConfig(**raw)
+    return config.model_dump()
 
 
 def run_pipeline(config_path: Path, project_root: Path, stages: list[str] | None = None):

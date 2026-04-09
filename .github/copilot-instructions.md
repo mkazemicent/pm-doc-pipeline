@@ -4,6 +4,25 @@
 This project builds a curated, local-first PM knowledge base that Copilot can query reliably.
 Prioritize high-signal outputs over broad ingestion.
 
+## Knowledge Base Usage
+When answering questions about the project, its documents, decisions, or status:
+
+1. **Always start with** `output/PROJECT_CONTEXT.md` — it contains the document inventory,
+	all decisions, ticket references, cross-references, and recent changes.
+2. **For document details**, read the specific file under `output/docs/`. Each file has
+	YAML frontmatter with source and date metadata.
+3. **For decision history**, check `output/DECISION_LOG.md` for the full list with
+	source files, line numbers, and surrounding context.
+4. **For recent changes**, check `output/CHANGELOG.md` for what changed in the last
+	pipeline run.
+5. **For weekly summaries**, check `output/reports/WEEKLY_REPORT.md` if it exists,
+	or suggest the user run `pm-pipeline report` to generate one.
+6. **For remote source lookups** (Confluence, GitHub), check `output/catalogs/` for
+	metadata indexes with links back to the source of truth.
+
+Do not guess about document content — read the actual files.
+Do not read `src/` files unless the user is asking about pipeline code itself.
+
 ## Architecture Overview
 The pipeline has 4 stages:
 1. Harvest: collect staged local files and optional remote catalogs/content.
@@ -59,6 +78,8 @@ When behavior changes in these areas, update docs together:
 - Use the `pm-doc-*` namespace for project-scoped skills to avoid collision with global skill sets.
 
 ## Token and Context Efficiency
+- For project knowledge questions, always use `output/` artifacts. Never reconstruct
+	answers from `src/` code when output artifacts are available.
 - If a task does not require code edits, avoid reading `src/` files by default.
 - Prefer generated artifacts first: `output/PROJECT_CONTEXT.md`, `output/DECISION_LOG.md`, and `output/CHANGELOG.md`.
 - Read the smallest relevant file set and avoid loading large files when summaries are sufficient.
@@ -80,3 +101,13 @@ When behavior changes in these areas, update docs together:
 Default behavior for Copilot:
 - If a user asks for a Mermaid diagram and does not request a custom theme, apply the shared project style.
 - If a user asks for another style, follow the user request and do not enforce the default palette.
+
+## Common Questions Copilot Should Handle
+These are the types of questions users will ask in this workspace:
+- "What decisions were made about [topic]?" -> search DECISION_LOG.md and PROJECT_CONTEXT.md
+- "What documents do we have about [topic]?" -> search PROJECT_CONTEXT.md document inventory
+- "What tickets are referenced?" -> check PROJECT_CONTEXT.md ticket references section
+- "Summarize [document name]" -> find and read the file under output/docs/
+- "What changed recently?" -> read CHANGELOG.md
+- "Give me a weekly summary" -> read or generate output/reports/WEEKLY_REPORT.md
+- "Where is the doc about [topic] in Confluence/GitHub?" -> search output/catalogs/

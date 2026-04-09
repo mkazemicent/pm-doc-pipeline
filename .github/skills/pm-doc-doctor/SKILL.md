@@ -1,7 +1,7 @@
 ---
 name: pm-doc-doctor
 description: Diagnose local setup and pipeline readiness with actionable PASS/WARN/FAIL checks.
-argument-hint: "[--verbose] [--json]"
+argument-hint: "[--verbose] [--json] [--fix]"
 allowed-tools: Read, Bash, Grep, Glob, AskUserQuestion
 ---
 
@@ -19,6 +19,7 @@ Checks should cover:
 <inputs>
 - `--verbose` (optional): include command output details.
 - `--json` (optional): return machine-readable check results.
+- `--fix` (optional): apply safe repair commands (upgrade pip/setuptools, reinstall editable package, refresh shell cache). Without this flag, only diagnostics are returned.
 - default mode: human-readable summary.
 </inputs>
 
@@ -35,8 +36,9 @@ $ARGUMENTS
 </context>
 
 <safety>
-- This skill is read-only and non-destructive.
-- Do not modify files or run repair commands.
+- Default mode is read-only and non-destructive.
+- Do not modify files.
+- Repair commands only run when --fix is explicitly provided.
 - If fix actions are needed, provide commands for user confirmation.
 </safety>
 
@@ -88,5 +90,12 @@ JSON mode object:
 - WARN: usable with caveats.
 - FAIL: blocked, include exact fix commands.
 
-7. If --json is requested, provide structured JSON output with checks, severity, evidence, and remediation fields.
+7. If --fix is requested:
+	a) Run: python3 -m pip install --upgrade pip setuptools wheel
+	b) Run: python3 -m pip install -e .
+	c) Run: hash -r
+	d) Verify: pm-pipeline --help
+	e) Return fixed / partially fixed / blocked with evidence.
+
+8. If --json is requested, provide structured JSON output with checks, severity, evidence, and remediation fields.
 </process>

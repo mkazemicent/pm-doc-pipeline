@@ -2,15 +2,14 @@
 
 import shutil
 import json
-import logging
 from pathlib import Path
 
-log = logging.getLogger(__name__)
+from .base import BaseHarvester
 
 STAGING_MANIFEST = "staging_manifest.json"
 
 
-class LocalHarvester:
+class LocalHarvester(BaseHarvester):
     """Process only files that were explicitly staged via `pm-pipeline add`.
 
     Instead of watching directories and ingesting everything, this harvester
@@ -19,15 +18,14 @@ class LocalHarvester:
     """
 
     def __init__(self, config: dict, raw_dir: Path, project_root: Path):
-        self.config = config
-        self.raw_dir = raw_dir
+        super().__init__(config, raw_dir)
         self.project_root = project_root
         self.manifest_path = project_root / "config" / STAGING_MANIFEST
 
     def harvest(self) -> list[Path]:
         staged = self._read_manifest()
         if not staged:
-            log.info("No files staged. Use 'pm-pipeline add <file>' to stage files.")
+            self.log.info("No files staged. Use 'pm-pipeline add <file>' to stage files.")
             return []
 
         downloaded: list[Path] = []
@@ -36,7 +34,7 @@ class LocalHarvester:
         for entry in staged:
             source = Path(entry["source"])
             if not source.exists():
-                log.warning("Staged file no longer exists: %s", source)
+                self.log.warning("Staged file no longer exists: %s", source)
                 continue
 
             dest = self.raw_dir / "local" / source.name
@@ -45,14 +43,14 @@ class LocalHarvester:
             # Copy if newer or not present
             if not dest.exists() or source.stat().st_mtime > dest.stat().st_mtime:
                 shutil.copy2(source, dest)
-                log.info("Staged → raw: %s", dest.name)
+                self.log.info("Staged → raw: %s", dest.name)
 
             downloaded.append(dest)
             remaining.append(entry)  # keep in manifest
 
         # Update manifest (remove entries for deleted source files)
         self._write_manifest(remaining)
-        log.info("Local: processed %d staged files.", len(downloaded))
+        self.log.info("Local: processed %d staged files.", len(downloaded))
         return downloaded
 
     def stage_file(self, filepath: Path) -> dict:
@@ -61,7 +59,7 @@ class LocalHarvester:
         if not filepath.exists():
             raise FileNotFoundError(f"File not found: {filepath}")
 
-        supported = {".pdf", ".docx", ".doc", ".pptx", ".md", ".txt", ".html", ".htm"}
+        supported = {".pdf", ".docx", ".pptx", ".md", ".txt", ".html", ".htm"}
         if filepath.suffix.lower() not in supported:
             raise ValueError(f"Unsupported file type: {filepath.suffix}. Supported: {', '.join(sorted(supported))}")
 
@@ -103,8 +101,3 @@ class LocalHarvester:
     def _write_manifest(self, entries: list[dict]) -> None:
         self.manifest_path.parent.mkdir(parents=True, exist_ok=True)
         self.manifest_path.write_text(json.dumps(entries, indent=2), encoding="utf-8")
-
-    @staticmethod
-    def _timestamp() -> str:
-        from datetime import datetime, timezone
-        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

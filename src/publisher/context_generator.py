@@ -61,7 +61,14 @@ class ContextGenerator:
                 for f in sorted(files, key=lambda x: x.name):
                     # Extract title from frontmatter if possible
                     title = self._extract_title(f)
+                    preview = self._extract_preview(f)
                     lines.append(f"- **{title}** — `{f.name}`")
+                    if preview:
+                        # Indent preview as a quote block for readability
+                        preview_oneline = preview.replace("\n", " ").strip()
+                        if len(preview_oneline) > 200:
+                            preview_oneline = preview_oneline[:200].rsplit(" ", 1)[0] + "..."
+                        lines.append(f"  > {preview_oneline}")
                 lines.append("")
         else:
             lines.append("_No documents processed yet. Run `pm-pipeline add <file>` then `pm-pipeline run`._")
@@ -97,6 +104,29 @@ class ContextGenerator:
             for ticket in sorted(all_tickets):
                 lines.append(f"- {ticket}")
             lines.append("")
+
+        # ── Cross-references (which docs share tickets) ──
+        if all_tickets:
+            ticket_to_docs: dict[str, list[str]] = {}
+            for dec in decisions:
+                doc_name = Path(dec.source_file).name
+                for ticket in dec.tickets:
+                    ticket_to_docs.setdefault(ticket, []).append(doc_name)
+            for chg in changes:
+                doc_name = chg.filepath.name
+                for ticket in chg.tickets:
+                    ticket_to_docs.setdefault(ticket, []).append(doc_name)
+
+            # Only show tickets that appear in multiple documents
+            cross_refs = {t: list(set(docs)) for t, docs in ticket_to_docs.items() if len(set(docs)) > 1}
+            if cross_refs:
+                lines.append("## Cross-References")
+                lines.append("")
+                lines.append("Tickets referenced across multiple documents:")
+                lines.append("")
+                for ticket, docs in sorted(cross_refs.items()):
+                    lines.append(f"- **{ticket}**: {', '.join(sorted(docs))}")
+                lines.append("")
 
         # ── Recent changes ──
         lines.append("## Recent Changes")
@@ -150,3 +180,26 @@ class ContextGenerator:
         except Exception:
             pass
         return filepath.stem.replace("_", " ").replace("-", " ").title()
+
+    @staticmethod
+    def _extract_preview(filepath: Path, max_chars: int = 500) -> str:
+        """Extract the first ~500 chars of document body, skipping frontmatter."""
+        try:
+            text = filepath.read_text(encoding="utf-8", errors="replace")
+            lines = text.splitlines()
+
+            # Skip YAML frontmatter
+            body_start = 0
+            if lines and lines[0].strip() == "---":
+                for i, line in enumerate(lines[1:], 1):
+                    if line.strip() == "---":
+                        body_start = i + 1
+                        break
+
+            body = "\n".join(lines[body_start:]).strip()
+            if len(body) > max_chars:
+                # Cut at last word boundary before max_chars
+                body = body[:max_chars].rsplit(" ", 1)[0] + "..."
+            return body
+        except Exception:
+            return ""

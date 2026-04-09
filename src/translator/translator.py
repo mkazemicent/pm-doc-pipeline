@@ -16,7 +16,6 @@ log = logging.getLogger(__name__)
 EXTENSION_MAP: dict[str, str] = {
     ".pdf": "pdf",
     ".docx": "docx",
-    ".doc": "docx",
     ".pptx": "pptx",
     ".html": "html",
     ".htm": "html",
@@ -115,21 +114,15 @@ class UniversalTranslator:
 
     def _output_path(self, source: Path) -> Path:
         """Determine output path, preserving source subdirectory structure."""
-        # Try to find the raw/ parent to build relative path
-        try:
-            rel = source.relative_to(source.parent)
-        except ValueError:
-            rel = Path(source.name)
-
         # Preserve subdirectory from raw (e.g., raw/github/repo/issues -> processed/github/repo/issues)
         raw_str = str(source)
         for marker in ("raw/confluence", "raw/github", "raw/webex", "raw/local"):
             idx = raw_str.find(marker)
             if idx != -1:
                 rel = Path(raw_str[idx + 4:])  # skip "raw/"
-                break
+                return self.processed_dir / rel.with_suffix(".md")
 
-        return self.processed_dir / rel.with_suffix(".md")
+        return self.processed_dir / Path(source.name).with_suffix(".md")
 
     @staticmethod
     def _json_to_md(filepath: Path) -> str:

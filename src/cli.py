@@ -184,6 +184,27 @@ def status(ctx):
 
 
 @cli.command()
+@click.option("--output", "-o", default=None, type=click.Path(), help="Output file path.")
+@click.pass_context
+def report(ctx, output):
+    """Generate a weekly report from pipeline output artifacts."""
+    from .engine.report import WeeklyReportGenerator
+
+    project_root = ctx.obj["project_root"]
+    config = load_config(ctx.obj["config_path"])
+    output_dir = project_root / config.get("general", {}).get("output_dir", "output")
+
+    if not (output_dir / "PROJECT_CONTEXT.md").exists():
+        click.echo("Error: No output artifacts found. Run 'pm-pipeline run' first.", err=True)
+        sys.exit(1)
+
+    generator = WeeklyReportGenerator(output_dir)
+    output_path = Path(output).resolve() if output else None
+    result = generator.write(output_path)
+    click.echo(f"Report generated: {result}")
+
+
+@cli.command()
 @click.pass_context
 def init(ctx):
     """Initialize the project directory structure."""

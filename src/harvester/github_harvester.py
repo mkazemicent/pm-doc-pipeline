@@ -2,7 +2,7 @@
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .base import BaseHarvester
@@ -42,7 +42,12 @@ class GitHubHarvester(BaseHarvester):
             repo = gh.get_repo(f"{owner}/{repo_name}")
 
             since = repo_cfg.get("since")
-            since_dt = datetime.fromisoformat(since) if since else None
+            if since:
+                since_dt = datetime.fromisoformat(since)
+                if since_dt.tzinfo is None:
+                    since_dt = since_dt.replace(tzinfo=timezone.utc)
+            else:
+                since_dt = None
             state = repo_cfg.get("state", "all")
             labels_filter = set(repo_cfg.get("labels_filter", []))
 
@@ -124,7 +129,7 @@ class GitHubHarvester(BaseHarvester):
 
     @staticmethod
     def _render_catalog(entries: list[dict], owner: str, repo_name: str) -> str:
-        now = datetime.now().strftime("%Y-%m-%d %H:%M UTC")
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
         lines = [
             "---",
             f"title: \"GitHub Catalog — {owner}/{repo_name}\"",
