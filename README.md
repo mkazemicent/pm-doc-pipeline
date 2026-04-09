@@ -201,6 +201,13 @@ Notes:
 - They default to safe behavior (non-destructive unless explicitly requested).
 - Weekly report uses existing output artifacts unless you explicitly ask to refresh the pipeline first.
 
+### Token-Efficient Copilot Usage
+
+1. For reporting and summaries, ask Copilot to use output artifacts first.
+2. For docs-only updates, tell Copilot to skip `src/` unless verification is required.
+3. Ask for minimal-file analysis when you want recommendations only.
+4. Use `pm-doc-*` skills to constrain scope and reduce context bloat.
+
 ### Skill Contract and Validation
 
 All project skills follow a shared contract with explicit sections for:

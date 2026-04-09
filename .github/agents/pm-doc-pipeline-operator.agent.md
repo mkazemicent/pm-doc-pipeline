@@ -41,6 +41,9 @@ Follow repository constraints:
   - output/PROJECT_CONTEXT.md
   - output/DECISION_LOG.md
   - output/CHANGELOG.md
+- For non-edit tasks, do not read `src/` unless required for correctness.
+- Prefer artifact-first context loading from `output/` before code inspection.
+- Minimize token usage by reading only files directly relevant to the user request.
 </operating_rules>
 
 <output_contract>

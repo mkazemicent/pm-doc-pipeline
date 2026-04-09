@@ -58,6 +58,13 @@ When behavior changes in these areas, update docs together:
 - Skills should reference project sources of truth (README.md, CONTRIBUTING.md, config/pipeline.yaml, this file).
 - Use the `pm-doc-*` namespace for project-scoped skills to avoid collision with global skill sets.
 
+## Token and Context Efficiency
+- If a task does not require code edits, avoid reading `src/` files by default.
+- Prefer generated artifacts first: `output/PROJECT_CONTEXT.md`, `output/DECISION_LOG.md`, and `output/CHANGELOG.md`.
+- Read the smallest relevant file set and avoid loading large files when summaries are sufficient.
+- For docs-only tasks, prioritize `README.md`, `CONTRIBUTING.md`, and `.github/` docs; inspect code only when needed for verification.
+- For analysis-only requests, return recommendations without expanding code context unless the user requests deeper validation.
+
 ## Mermaid Diagram Style Standard
 - Use a default Mermaid visual style for all new diagrams across this project unless the user explicitly requests a different style.
 - Reuse the shared style snippet in templates/mermaid-style.md.
