@@ -58,7 +58,7 @@ class DecisionLogBuilder:
                     tickets.extend(pat.findall(context))
 
                 decisions.append(Decision(
-                    source_file=str(filepath),
+                    source_file=self._safe_source_file(filepath),
                     line_number=line_num,
                     context=context,
                     keywords_matched=matched_kw,
@@ -93,3 +93,16 @@ class DecisionLogBuilder:
             lines.append("")
 
         return "\n".join(lines)
+
+    @staticmethod
+    def _safe_source_file(filepath: Path) -> str:
+        """Return a non-sensitive source path for logs and reports.
+
+        Prefers a stable repository-relative path segment rooted at `processed/`.
+        Falls back to filename only when the marker is not present.
+        """
+        parts = filepath.parts
+        if "processed" in parts:
+            idx = parts.index("processed")
+            return "/".join(parts[idx:])
+        return filepath.name

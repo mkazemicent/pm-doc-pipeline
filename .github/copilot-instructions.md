@@ -43,12 +43,20 @@ The pipeline has 4 stages:
 - Preferred local setup is python3 virtual environment in .venv.
 - CLI usage should be validated with pm-pipeline --help.
 - If credential files are used, ensure env values are available to the running process.
+- Packaging backend in pyproject.toml should remain `setuptools.build_meta` to keep editable installs (`pip install -e .`) reliable.
 
 ## Documentation Consistency Rules
 When behavior changes in these areas, update docs together:
 1. CLI workflow changes: README and CONTRIBUTING.md.
 2. Pipeline stage behavior: README and this file.
 3. Env var names/usage: config/.env.example and README.
+4. Chat skills/agent behavior: .github/skills/, .github/agents/, README, and this file.
+
+## Skills and Agents Conventions
+- Project skills live under `.github/skills/pm-doc-*/SKILL.md`.
+- Project agents live under `.github/agents/*.agent.md`.
+- Skills should reference project sources of truth (README.md, CONTRIBUTING.md, config/pipeline.yaml, this file).
+- Use the `pm-doc-*` namespace for project-scoped skills to avoid collision with global skill sets.
 
 ## Mermaid Diagram Style Standard
 - Use a default Mermaid visual style for all new diagrams across this project unless the user explicitly requests a different style.

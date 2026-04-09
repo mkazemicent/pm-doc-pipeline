@@ -49,6 +49,20 @@ pip install -e .
 pm-pipeline --help
 ```
 
+If editable install fails with `Cannot import 'setuptools.backends._legacy'`, check that `pyproject.toml` uses:
+
+```toml
+build-backend = "setuptools.build_meta"
+```
+
+If `pm-pipeline` is still not found after install, run:
+
+```bash
+hash -r
+pm-pipeline --help
+python3 -m src.cli --help
+```
+
 ### 4. Stage some documents
 
 ```bash
@@ -148,6 +162,72 @@ flowchart TD
 | `pm-pipeline run -s translate -s publish` | Run specific stages |
 | `pm-pipeline status` | Show file counts and pipeline state |
 | `pm-pipeline init` | Create project directories |
+
+## Copilot Skills (Project-Scoped)
+
+This repository ships chat skills under `.github/skills/` so Copilot can run common workflows directly from chat in this project.
+
+Project operator agent:
+- `.github/agents/pm-doc-pipeline-operator.agent.md`
+
+Available skills:
+- `/pm-doc-doctor`
+- `/pm-doc-install-fix`
+- `/pm-doc-test-scenario`
+- `/pm-doc-state-audit`
+- `/pm-doc-report-weekly`
+
+Skill behavior summary:
+
+| Skill | Purpose | Default Mode | Writes Files |
+|---|---|---|---|
+| `/pm-doc-doctor` | setup and readiness diagnostics | read-only checks | no |
+| `/pm-doc-install-fix` | install troubleshooting | `--check` (diagnostics only) | no |
+| `/pm-doc-test-scenario` | end-to-end local validation | run + staged cleanup | yes (test inputs and pipeline outputs) |
+| `/pm-doc-state-audit` | staging/raw/processed/output consistency audit | read-only checks | no |
+| `/pm-doc-report-weekly` | deterministic weekly report generation | read existing output artifacts | yes (report output) |
+
+Usage example in Copilot Chat:
+
+```text
+/pm-doc-doctor --verbose
+/pm-doc-test-scenario --cleanup
+/pm-doc-report-weekly
+```
+
+Notes:
+- These skills are repository-scoped and should work after cloning this repo and opening it in Copilot-enabled VS Code.
+- They follow project rules in `.github/copilot-instructions.md`.
+- They default to safe behavior (non-destructive unless explicitly requested).
+- Weekly report uses existing output artifacts unless you explicitly ask to refresh the pipeline first.
+
+### Skill Contract and Validation
+
+All project skills follow a shared contract with explicit sections for:
+- inputs
+- safety
+- output contract
+- verification checklist
+
+Validation tracking lives in:
+- `docs/skills-validation.md`
+
+Default response envelope used by the operator/skills:
+1. Summary
+2. Findings
+3. Actions
+4. Verification
+
+### Clone Portability Checklist
+
+After cloning on a new machine, ensure:
+1. VS Code has GitHub Copilot Chat enabled and signed in.
+2. You open the repository root as the active workspace.
+3. Repository guidance files exist:
+    - `.github/copilot-instructions.md`
+    - `.github/agents/pm-doc-pipeline-operator.agent.md`
+    - `.github/skills/pm-doc-*/SKILL.md`
+4. Python environment is ready (`.venv` + `pm-pipeline --help`).
 
 ### Typical daily workflow
 
