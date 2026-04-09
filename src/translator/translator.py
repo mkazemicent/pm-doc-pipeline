@@ -16,7 +16,6 @@ log = logging.getLogger(__name__)
 EXTENSION_MAP: dict[str, str] = {
     ".pdf": "pdf",
     ".docx": "docx",
-    ".doc": "docx",
     ".pptx": "pptx",
     ".html": "html",
     ".htm": "html",
@@ -30,9 +29,10 @@ EXTENSION_MAP: dict[str, str] = {
 class UniversalTranslator:
     """Convert any supported raw file to standardized Markdown."""
 
-    def __init__(self, config: dict, processed_dir: Path):
+    def __init__(self, config: dict, processed_dir: Path, force: bool = False):
         self.config = config
         self.processed_dir = processed_dir
+        self.force = force
         t_cfg = config.get("translator", {})
         md_cfg = t_cfg.get("markdown", {})
 
@@ -68,6 +68,15 @@ class UniversalTranslator:
             log.warning("Unsupported file type: %s", filepath)
             return None
 
+        # Skip if output already exists and is newer than source
+        out_path = self._output_path(filepath)
+        if not self.force and out_path.exists():
+            source_mtime = filepath.stat().st_mtime
+            output_mtime = out_path.stat().st_mtime
+            if output_mtime >= source_mtime:
+                log.debug("Skipping (unchanged): %s", filepath.name)
+                return out_path
+
         log.info("Translating: %s [%s]", filepath.name, parser_type)
 
         if parser_type == "pdf":
@@ -89,7 +98,6 @@ class UniversalTranslator:
 
         # Write with frontmatter
         md_content = self._wrap_frontmatter(filepath, body)
-        out_path = self._output_path(filepath)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(md_content, encoding="utf-8")
         return out_path
@@ -115,21 +123,15 @@ class UniversalTranslator:
 
     def _output_path(self, source: Path) -> Path:
         """Determine output path, preserving source subdirectory structure."""
-        # Try to find the raw/ parent to build relative path
-        try:
-            rel = source.relative_to(source.parent)
-        except ValueError:
-            rel = Path(source.name)
-
         # Preserve subdirectory from raw (e.g., raw/github/repo/issues -> processed/github/repo/issues)
         raw_str = str(source)
         for marker in ("raw/confluence", "raw/github", "raw/webex", "raw/local"):
             idx = raw_str.find(marker)
             if idx != -1:
                 rel = Path(raw_str[idx + 4:])  # skip "raw/"
-                break
+                return self.processed_dir / rel.with_suffix(".md")
 
-        return self.processed_dir / rel.with_suffix(".md")
+        return self.processed_dir / Path(source.name).with_suffix(".md")
 
     @staticmethod
     def _json_to_md(filepath: Path) -> str:

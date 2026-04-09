@@ -37,8 +37,8 @@ class HTMLToMarkdown:
         """Post-process converted markdown."""
         import re
 
-        # Collapse 3+ blank lines into 2
-        text = re.sub(r"\n{3,}", "\n\n", text)
+        # Collapse 3+ blank lines into 2, including whitespace-only lines
+        text = re.sub(r"\n\s*\n(\s*\n)+", "\n\n", text)
         # Remove trailing whitespace on each line
         text = "\n".join(line.rstrip() for line in text.splitlines())
         return text.strip() + "\n"

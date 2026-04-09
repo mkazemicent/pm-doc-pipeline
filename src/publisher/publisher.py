@@ -2,7 +2,6 @@
 
 import logging
 import shutil
-from datetime import datetime, timezone
 from pathlib import Path
 
 log = logging.getLogger(__name__)
