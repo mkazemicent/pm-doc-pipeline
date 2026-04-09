@@ -56,6 +56,8 @@ class ChangelogConfig(BaseModel):
 class EngineConfig(BaseModel):
     ticket_patterns: list[str] = Field(default_factory=list)
     decision_keywords: list[str] = Field(default_factory=list)
+    decision_exclude_patterns: list[str] = Field(default_factory=list)
+    max_decisions_per_file: int = 20
     changelog: ChangelogConfig = Field(default_factory=ChangelogConfig)
 
 

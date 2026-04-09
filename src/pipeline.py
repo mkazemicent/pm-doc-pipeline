@@ -23,7 +23,12 @@ def load_config(config_path: Path) -> dict:
     return config.model_dump()
 
 
-def run_pipeline(config_path: Path, project_root: Path, stages: list[str] | None = None):
+def run_pipeline(
+    config_path: Path,
+    project_root: Path,
+    stages: list[str] | None = None,
+    force: bool = False,
+):
     """Execute the full pipeline or specific stages.
 
     Args:
@@ -31,6 +36,7 @@ def run_pipeline(config_path: Path, project_root: Path, stages: list[str] | None
         project_root: Root directory of the project
         stages: Optional list of stages to run. Defaults to all.
                  Valid: "harvest", "translate", "engine", "publish"
+        force: If True, retranslate all files even when processed output is newer.
     """
     config = load_config(config_path)
 
@@ -74,7 +80,7 @@ def run_pipeline(config_path: Path, project_root: Path, stages: list[str] | None
         log.info("STAGE 2: UNIVERSAL TRANSLATOR")
         log.info("=" * 60)
 
-        translator = UniversalTranslator(config, processed_dir)
+        translator = UniversalTranslator(config, processed_dir, force=force)
         all_processed_files = translator.translate(all_raw_files)
 
         log.info("Translation complete: %d processed files.", len(all_processed_files))

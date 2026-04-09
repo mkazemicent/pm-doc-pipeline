@@ -105,6 +105,16 @@ engine:
     - "we will"
     - "go with"
     - "final call"
+  # Patterns that should NOT trigger decision detection even if keywords match
+  decision_exclude_patterns:
+    - "(?i)was decided in \\d{4}"     # historical references
+    - "(?i)previously decided"
+    - "(?i)had been approved"
+    - "(?i)not yet decided"
+    - "(?i)to be decided"
+    - "(?i)tbd"
+  # Maximum number of decisions to extract per file (prevents noise from dense docs)
+  max_decisions_per_file: 20
   change_tracking:
     enabled: true
     track_processed_dir: true

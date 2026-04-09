@@ -128,8 +128,9 @@ def list_staged(ctx):
     type=click.Choice(VALID_STAGES, case_sensitive=False),
     help="Run specific stage(s). Omit to run all.",
 )
+@click.option("--force", "-f", is_flag=True, help="Force reprocessing of all files.")
 @click.pass_context
-def run(ctx, stage):
+def run(ctx, stage, force):
     """Run the pipeline (all stages or specific ones)."""
     config_path = ctx.obj["config_path"]
     project_root = ctx.obj["project_root"]
@@ -144,7 +145,7 @@ def run(ctx, stage):
     click.echo(f"Config: {config_path}")
     click.echo()
 
-    run_pipeline(config_path, project_root, stages)
+    run_pipeline(config_path, project_root, stages, force=force)
     click.echo("\nDone. Open output/ in VS Code to explore with Copilot.")
 
 
@@ -202,6 +203,84 @@ def report(ctx, output):
     output_path = Path(output).resolve() if output else None
     result = generator.write(output_path)
     click.echo(f"Report generated: {result}")
+
+
+@cli.command()
+@click.argument("query")
+@click.option("--case-sensitive", "-cs", is_flag=True, help="Case-sensitive search.")
+@click.pass_context
+def search(ctx, query, case_sensitive):
+    """Search the knowledge base for a keyword or phrase.
+
+    Examples:
+      pm-pipeline search "auth feature"
+      pm-pipeline search PROJ-123
+      pm-pipeline search "roadmap" --case-sensitive
+    """
+    from .engine.search import KnowledgeBaseSearch
+
+    project_root = ctx.obj["project_root"]
+    config = load_config(ctx.obj["config_path"])
+    output_dir = project_root / config.get("general", {}).get("output_dir", "output")
+
+    if not output_dir.exists():
+        click.echo("Error: No output directory found. Run 'pm-pipeline run' first.", err=True)
+        sys.exit(1)
+
+    searcher = KnowledgeBaseSearch(output_dir)
+    results = searcher.search(query, case_sensitive=case_sensitive)
+    click.echo(searcher.format_results(results))
+
+
+@cli.command()
+@click.argument("directory", type=click.Path(exists=True))
+@click.option("--interval", "-i", default=30, help="Poll interval in seconds.")
+@click.pass_context
+def watch(ctx, directory, interval):
+    """Watch a directory and auto-process new/changed files.
+
+    Polls the directory for supported file types. When changes are detected,
+    automatically stages and runs the pipeline.
+
+    Examples:
+      pm-pipeline watch ~/Documents/pm-docs
+      pm-pipeline watch ~/Downloads --interval 60
+    """
+    from .watcher import PipelineWatcher
+
+    config_path = ctx.obj["config_path"]
+    project_root = ctx.obj["project_root"]
+    config = load_config(config_path)
+    raw_dir = project_root / config.get("general", {}).get("raw_dir", "raw")
+
+    watch_dir = Path(directory).resolve()
+    watcher = PipelineWatcher(watch_dir, config_path, project_root)
+
+    def on_change(changed_files):
+        click.echo(f"\n--- {len(changed_files)} file(s) changed ---")
+        harvester = LocalHarvester(config, raw_dir, project_root)
+        for changed_file in changed_files:
+            try:
+                result = harvester.stage_file(changed_file)
+                if result["status"] == "staged":
+                    click.echo(f"  + Staged: {changed_file.name}")
+                else:
+                    click.echo(f"  ~ Already staged: {changed_file.name}")
+            except (FileNotFoundError, ValueError) as exc:
+                click.echo(f"  ! Skipped: {exc}")
+                continue
+
+        click.echo("  Running pipeline...")
+        try:
+            run_pipeline(config_path, project_root)
+            click.echo("  Done. Output updated.")
+        except Exception as exc:
+            click.echo(f"  ! Pipeline error: {exc}")
+
+    click.echo(f"Watching: {watch_dir}")
+    click.echo(f"Interval: {interval}s")
+    click.echo("Ctrl+C to stop.\n")
+    watcher.run_loop(interval=interval, on_change=on_change)
 
 
 @cli.command()

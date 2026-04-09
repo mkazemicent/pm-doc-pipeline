@@ -162,6 +162,9 @@ flowchart TD
 | `pm-pipeline status` | Show file counts and pipeline state |
 | `pm-pipeline report` | Generate a weekly report from output artifacts |
 | `pm-pipeline report -o path` | Generate report to a custom path |
+| `pm-pipeline search "<query>"` | Search the knowledge base for a keyword or phrase |
+| `pm-pipeline watch <dir>` | Watch a directory and auto-process changed files |
+| `pm-pipeline watch <dir> -i 60` | Watch with custom poll interval (seconds) |
 | `pm-pipeline init` | Create project directories |
 
 ## Copilot Skills (Project-Scoped)
@@ -241,6 +244,10 @@ pm-pipeline add ~/Downloads/q3-roadmap.pptx
 
 # Process
 pm-pipeline run
+
+# Alternative: watch a folder for changes
+pm-pipeline watch ~/Documents/pm-docs --interval 60
+# Now just save files into that folder - pipeline runs automatically
 
 # Open VS Code, ask Copilot:
 #   "What decisions were made about the auth feature?"

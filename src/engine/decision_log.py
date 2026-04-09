@@ -29,10 +29,14 @@ class DecisionLogBuilder:
         self.ticket_patterns = [
             re.compile(p) for p in engine_cfg.get("ticket_patterns", [])
         ]
+        self.exclude_patterns = [
+            re.compile(p) for p in engine_cfg.get("decision_exclude_patterns", [])
+        ]
+        self.max_per_file = engine_cfg.get("max_decisions_per_file", 20)
 
     def scan(self, processed_files: list[Path]) -> list[Decision]:
         """Scan files for decision-related content."""
-        decisions: list[Decision] = []
+        all_decisions: list[Decision] = []
         now = datetime.now(timezone.utc).isoformat()
 
         for filepath in processed_files:
@@ -41,10 +45,16 @@ class DecisionLogBuilder:
             text = filepath.read_text(encoding="utf-8", errors="replace")
             lines = text.splitlines()
 
+            file_decisions: list[Decision] = []
+
             for line_num, line in enumerate(lines, 1):
                 line_lower = line.lower()
                 matched_kw = [kw for kw in self.keywords if kw.lower() in line_lower]
                 if not matched_kw:
+                    continue
+
+                # Skip if line matches any exclude pattern
+                if any(pat.search(line) for pat in self.exclude_patterns):
                     continue
 
                 # Grab surrounding context (current line + 1 line before/after)
@@ -52,22 +62,43 @@ class DecisionLogBuilder:
                 end = min(len(lines), line_num + 1)
                 context = "\n".join(lines[start:end]).strip()
 
+                # Merge decisions that fall inside the previous context window.
+                if file_decisions and self._contexts_overlap(file_decisions[-1], line_num):
+                    for kw in matched_kw:
+                        if kw not in file_decisions[-1].keywords_matched:
+                            file_decisions[-1].keywords_matched.append(kw)
+                    continue
+
                 # Extract ticket refs from context
                 tickets: list[str] = []
                 for pat in self.ticket_patterns:
                     tickets.extend(pat.findall(context))
 
-                decisions.append(Decision(
-                    source_file=self._safe_source_file(filepath),
-                    line_number=line_num,
-                    context=context,
-                    keywords_matched=matched_kw,
-                    tickets=list(set(tickets)),
-                    timestamp=now,
-                ))
+                file_decisions.append(
+                    Decision(
+                        source_file=self._safe_source_file(filepath),
+                        line_number=line_num,
+                        context=context,
+                        keywords_matched=matched_kw,
+                        tickets=list(set(tickets)),
+                        timestamp=now,
+                    )
+                )
 
-        log.info("Found %d decisions across %d files.", len(decisions), len(processed_files))
-        return decisions
+            # Apply per-file cap
+            if len(file_decisions) > self.max_per_file:
+                log.warning(
+                    "Capped decisions for %s: %d -> %d",
+                    filepath.name,
+                    len(file_decisions),
+                    self.max_per_file,
+                )
+                file_decisions = file_decisions[:self.max_per_file]
+
+            all_decisions.extend(file_decisions)
+
+        log.info("Found %d decisions across %d files.", len(all_decisions), len(processed_files))
+        return all_decisions
 
     def render(self, decisions: list[Decision]) -> str:
         """Render decisions as a Markdown document."""
@@ -106,3 +137,10 @@ class DecisionLogBuilder:
             idx = parts.index("processed")
             return "/".join(parts[idx:])
         return filepath.name
+
+    @staticmethod
+    def _contexts_overlap(prev_decision: Decision, current_line: int) -> bool:
+        """Check if current line falls within the context window of the previous decision."""
+        # Context window is line -1 to line +1 (3 lines total)
+        prev_end = prev_decision.line_number + 1
+        return current_line <= prev_end
