@@ -1,0 +1,128 @@
+# =============================================================================
+# PM Doc Pipeline — Central Configuration
+# =============================================================================
+# This is the ONLY file you need to edit. Paste links, meeting IDs, and paths here.
+# The pipeline is curated: only what you explicitly configure gets processed.
+
+# ---------------------------------------------------------------------------
+# General Settings
+# ---------------------------------------------------------------------------
+general:
+  project_name: "My PM Project"
+  output_dir: "output"
+  raw_dir: "raw"
+  processed_dir: "processed"
+  log_level: "INFO"                # DEBUG | INFO | WARNING | ERROR
+
+# ---------------------------------------------------------------------------
+# 1. DATA HARVESTER — What to pull from remote sources
+# ---------------------------------------------------------------------------
+# NOTE: Remote sources produce CATALOGS (metadata + links), not full copies.
+# Only "pinned" items get full local content. This keeps things lightweight.
+
+sources:
+
+  # Confluence — produces a searchable page catalog
+  confluence:
+    enabled: false
+    base_url: "https://your-company.atlassian.net/wiki"
+    # Auth: set env vars CONFLUENCE_USERNAME and CONFLUENCE_API_TOKEN
+    spaces:
+      - key: "PM"
+        label_filter: ["roadmap", "prd", "specs"]   # IMPORTANT: always filter
+      - key: "ENG"
+        label_filter: ["architecture", "decisions"]
+    # Pinned pages: ONLY these get full content downloaded locally
+    pinned_page_ids: []            # e.g., ["123456", "789012"]
+    export_format: "storage"
+    max_pages_per_space: 100
+
+  # GitHub — produces an issue/PR catalog
+  github:
+    enabled: false
+    # Auth: set env var GITHUB_TOKEN
+    repos:
+      - owner: "your-org"
+        repo: "your-repo"
+        fetch_issues: true
+        fetch_pull_requests: true
+        fetch_discussions: false
+        # Only items matching these labels get full content
+        labels_filter: ["feature", "decision", "epic"]
+        state: "all"
+        since: "2024-01-01"
+
+  # Webex — meeting transcripts and room messages
+  webex:
+    enabled: false
+    # Auth: set env var WEBEX_ACCESS_TOKEN
+    meeting_ids: []                # paste specific meeting IDs here
+    room_ids: []
+    transcript_format: "vtt"
+    lookback_days: 30
+
+# ---------------------------------------------------------------------------
+# 2. LOCAL FILES — Staging workflow
+# ---------------------------------------------------------------------------
+# Local files are NOT auto-discovered. Use the CLI to stage them:
+#   pm-pipeline add ~/docs/sprint-deck.pptx
+#   pm-pipeline add ~/docs/prd-v2.docx
+#
+# Staged files are tracked in config/staging_manifest.json (auto-managed).
+# Supported formats: .pdf .docx .pptx .md .txt .html
+
+# ---------------------------------------------------------------------------
+# 3. UNIVERSAL TRANSLATOR — Parsing settings
+# ---------------------------------------------------------------------------
+translator:
+  # PDF parsing engine: "pdfplumber" (accurate layout) | "pymupdf" (faster)
+  pdf_engine: "pdfplumber"
+  pdf_strip_patterns:
+    - "^Page \\d+ of \\d+$"
+    - "^CONFIDENTIAL$"
+  markdown:
+    wrap_width: 0
+    heading_style: "atx"
+    bullet_char: "-"
+  extract_images: false
+
+# ---------------------------------------------------------------------------
+# 4. ENGINE — Change tracking & analysis
+# ---------------------------------------------------------------------------
+engine:
+  # Ticket/issue patterns to extract (regex)
+  ticket_patterns:
+    - "(?i)(?:JIRA|TICKET)[- ]?\\d+"
+    - "[A-Z]{2,10}-\\d+"           # PROJ-1234
+    - "(?i)#\\d+"                  # GitHub #123
+  # Keywords that signal a decision was made
+  decision_keywords:
+    - "decided"
+    - "agreed"
+    - "approved"
+    - "resolution"
+    - "action item"
+    - "we will"
+    - "go with"
+    - "final call"
+  change_tracking:
+    enabled: true
+    track_processed_dir: true
+    diff_format: "unified"
+  changelog:
+    group_by: "source"
+    max_entries: 100
+
+# ---------------------------------------------------------------------------
+# 5. PUBLISHER — Output settings
+# ---------------------------------------------------------------------------
+# Output structure is intentionally flat for Copilot compatibility:
+#   output/
+#     PROJECT_CONTEXT.md    ← Copilot's primary file
+#     DECISION_LOG.md       ← All decisions
+#     CHANGELOG.md          ← Recent changes
+#     docs/                 ← Processed documents
+#     catalogs/             ← Confluence/GitHub indexes
+publisher:
+  generate_context: true           # build PROJECT_CONTEXT.md
+  add_frontmatter: true
